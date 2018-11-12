@@ -1,11 +1,16 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class SceneController : MonoBehaviour {
 
     public static SceneController sceneControl;
+
+    public int Scene;
 
     public float health;
     public float experience;
@@ -14,9 +19,22 @@ public class SceneController : MonoBehaviour {
         if(sceneControl == null) {
             DontDestroyOnLoad(gameObject);
             sceneControl = this;
+            try
+            {
+                LoadScene();
+            }
+            catch
+            {
+                SetDefaultValue();
+            }
         } else if(sceneControl != this) {
             Destroy(gameObject);
         }
+    }
+
+    private void SetDefaultValue()
+    {
+        SceneManager.LoadScene(0);
     }
 
     public void NextScene() {
@@ -44,5 +62,33 @@ public class SceneController : MonoBehaviour {
         GUI.Label(new Rect(10, 10, 180, 80), "Active scene index : "  + SceneManager.GetActiveScene().buildIndex, style);
     }
    
+    public void SaveScene()
+    {
+        FileStream file = File.Open(Application.persistentDataPath + "/sceneInfo.dat", FileMode.Create);
+        SceneData data = new SceneData();
+        data.sceneNumber = SceneManager.GetActiveScene().buildIndex;
+        BinaryFormatter bf = new BinaryFormatter();
+        bf.Serialize(file, data);
+        file.Close();
+    }
 
+    public void LoadScene()
+    {
+        BinaryFormatter bf = new BinaryFormatter();
+        if (!File.Exists(Application.persistentDataPath + "/sceneInfo.dat"))
+        {
+            throw new Exception("Scene file does not exist");
+        }
+        FileStream file = File.Open(Application.persistentDataPath + "/sceneInfo.dat", FileMode.Open);
+        SceneData scene = (SceneData)bf.Deserialize(file);
+        Scene = scene.sceneNumber;
+        SceneManager.LoadScene(Scene);
+
+    }
+
+    [Serializable]
+    class SceneData
+    {
+        public int sceneNumber;
+    }
 }

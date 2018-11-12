@@ -1,5 +1,8 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
 using UnityEngine;
 
 public class GameController : MonoBehaviour {
@@ -14,13 +17,28 @@ public class GameController : MonoBehaviour {
         if (control == null) {
             DontDestroyOnLoad(gameObject);
             control = this;
-            Attack = 5;
-            Defense = 2;
-            Health = 10;
+
+            try
+            {
+                LoadGame();
+            }
+            catch
+            {
+                SetDefaultValue();
+            }
+            
         } else if (control != this) {
             Destroy(gameObject);
         }
     }
+
+    private void SetDefaultValue()
+    {
+        Attack = 5;
+        Defense = 2;
+        Health = 10;
+    }
+
     private void OnGUI() {
         GUIStyle style = new GUIStyle();
         style.fontSize = 56;
@@ -43,8 +61,38 @@ public class GameController : MonoBehaviour {
         Health += 10;
     }
 
+    public void SaveGame()
+    {
+        FileStream file = File.Open(Application.persistentDataPath + "/gameInfo.dat", FileMode.Create);
+        PlayerData data = new PlayerData();
+        data.health = Health;
+        data.attack = Attack;
+        data.defense = Defense;
+        BinaryFormatter bf = new BinaryFormatter();
+        bf.Serialize(file, data);
+        file.Close();
+    }
 
+    public void LoadGame()
+    {
+        BinaryFormatter bf = new BinaryFormatter();
+        if(!File.Exists(Application.persistentDataPath + "/gameInfo.dat"))
+        {
+            throw new Exception("Game file does not exist");
+        }
+        FileStream file = File.Open(Application.persistentDataPath + "/gameInfo.dat", FileMode.Open);
+        PlayerData player = (PlayerData)bf.Deserialize(file);
+        Attack = player.attack;
+        Defense = player.defense;
+        Health = player.health;
+        file.Close();
+    }
 
-
-
+    [Serializable]
+    class PlayerData
+    {
+        public int health;
+        public int attack;
+        public int defense;
+    }
 }
